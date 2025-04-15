@@ -5,7 +5,7 @@ import html
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from gifts import calculate_gift_code, get_gift_info
 from config import BOT_TOKEN, CHANNEL_ID
@@ -86,6 +86,14 @@ async def send_gift(message, day=None, month=None, year=None, title="Дар", co
             caption=caption,
             parse_mode="HTML"
         )
+
+        # Показываем кнопки после дара
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text="Выбери, что хочешь узнать далее:",
+            reply_markup=start_kb
+        )
+
     except Exception as e:
         print(f"[Ошибка отправки дара] {e}")
         await message.answer("⚠️ Не удалось отправить изображение дара.")
@@ -94,8 +102,7 @@ async def send_gift(message, day=None, month=None, year=None, title="Дар", co
 def setup_scheduler():
     scheduler = AsyncIOScheduler(timezone="UTC")
 
-    # 5:00 UTC = 9:00 по Тбилиси
-    @scheduler.scheduled_job("cron", hour=5, minute=0)
+    @scheduler.scheduled_job("cron", hour=5, minute=0)  # 9:00 по Тбилиси
     async def scheduled_send():
         await send_daily_gift_to_channel()
 
@@ -140,4 +147,10 @@ def reduce_to_single_digit(num):
 async def main():
     setup_scheduler()
     print("🤖 Бот запущен!")
+
+    # Удаляем все команды, кроме /start
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Главное меню")
+    ])
+
     await dp.start_polling(bot)
